@@ -185,7 +185,6 @@ intensity_dta_pivot[is.na(intensity_dta_pivot)] <- 0
 ```
 
 #### creating ebola dataset
-
 ```{r}
 health_spending <- read_csv("~/Github/violent-infections/thesis datasets/ebola data/health expenditure/health_expenditure_per_capita.csv")
 
@@ -374,12 +373,17 @@ cor.test(x = CPI_dta_long$score,
          z = health_spending_clean$`health_expenditure_per_capita_(US$)`, 
          method = "pearson")
 
-ggplot(data = as.data.frame(CPI_dta_long$score, 
+
+
+
+ggplot(data = cbind.data.frame(CPI_dta_long$score, 
                             attack_dta_long$attacks, 
                             health_spending_clean$`health_expenditure_per_capita_(US$)`), 
-       aes(x = CPI_dta_long$score, y = attack_dta_long$attacks)) +
+       aes(x = CPI_dta_long$score, y = attack_dta_long$attacks))
+
++
   geom_jitter() +
-  geom_smooth(method = lm) +
+  geom_smooth(method = y ~ x + health_spending_clean$`health_expenditure_per_capita_(US$)`) +
   labs(title = "Figure 1: Effect of Political Distrust on Attacks of Aid Workers",  
        subtitle = "data: Aid Worker Security Database and Corruption Perception Index",
        x = "Corruption Perception Index Score",
