@@ -184,9 +184,26 @@ intensity_dta_pivot <-
 intensity_dta_pivot[is.na(intensity_dta_pivot)] <- 0
 ```
 
+#### creating ebola dataset
+
+```{r}
+health_spending <- read_csv("~/Github/violent-infections/thesis datasets/ebola data/health expenditure/health_expenditure_per_capita.csv")
+
+health_spending_long <- 
+  health_spending %>%
+  pivot_longer(cols = c(`2013`, `2014`, `2015`, `2016`, `2017`), 
+               names_to = "Year", 
+               values_to = "health_expenditure_per_capita_(US$)")
+
+health_spending_clean <-
+  health_spending_long %>%
+  filter(Countries %in% unique(attack_dta$Country), Year %in% 2013:2017) %>%
+  select(country = Countries, Year, `health_expenditure_per_capita_(US$)`)
+
+```
+
 
 #### combining CPI datasets
-
 ```{r}
 dta_10_piv <-
   dta_10_std %>%
@@ -326,6 +343,54 @@ intensity_vector_2 <- intensity_vector_2[intensity_vector_2 > 0]
 
 mean(intensity_vector_2)
 ```
+
+
+####controlling for case severity
+
+```{r}
+health_spending_clean <-
+  health_spending_clean %>%
+  arrange(country)
+
+CPI_dta_renamed <-
+  CPI_dta %>%
+  select(Country, "2013" = `2013_CPI`, "2014" = `2014_CPI`, "2015" = `2015_CPI`, "2016" = `2016_CPI`, "2017" = `2017_CPI`)
+
+CPI_dta_long <-
+  CPI_dta_renamed %>%
+  filter(Country %in% unique(health_spending_clean$country)) %>%
+  pivot_longer(cols = c(2:6), names_to = "year", values_to = "score") %>%
+  arrange(Country)
+
+
+attack_dta_long <-
+  attack_dta %>%
+  filter(Country %in% unique(health_spending_clean$country)) %>%
+  pivot_longer(cols = c(2:6), names_to = "year", values_to = "attacks") %>%
+  arrange(Country)
+
+cor.test(x = CPI_dta_long$score, 
+         y = attack_dta_long$attacks, 
+         z = health_spending_clean$`health_expenditure_per_capita_(US$)`, 
+         method = "pearson")
+
+ggplot(data = as.data.frame(CPI_dta_long$score, 
+                            attack_dta_long$attacks, 
+                            health_spending_clean$`health_expenditure_per_capita_(US$)`), 
+       aes(x = CPI_dta_long$score, y = attack_dta_long$attacks)) +
+  geom_jitter() +
+  geom_smooth(method = lm) +
+  labs(title = "Figure 1: Effect of Political Distrust on Attacks of Aid Workers",  
+       subtitle = "data: Aid Worker Security Database and Corruption Perception Index",
+       x = "Corruption Perception Index Score",
+       y = "Number of Attacks") +
+  theme_bw()
+
+pacman::p_load(ppcor)
+```
+
+
+
 
 
 
