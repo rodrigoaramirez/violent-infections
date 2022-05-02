@@ -184,24 +184,6 @@ intensity_dta_pivot <-
 intensity_dta_pivot[is.na(intensity_dta_pivot)] <- 0
 ```
 
-#### creating ebola dataset
-```{r}
-health_spending <- read_csv("~/Github/violent-infections/thesis datasets/ebola data/health expenditure/health_expenditure_per_capita.csv")
-
-health_spending_long <- 
-  health_spending %>%
-  pivot_longer(cols = c(`2013`, `2014`, `2015`, `2016`, `2017`), 
-               names_to = "Year", 
-               values_to = "health_expenditure_per_capita_(US$)")
-
-health_spending_clean <-
-  health_spending_long %>%
-  filter(Countries %in% unique(attack_dta$Country), Year %in% 2013:2017) %>%
-  select(country = Countries, Year, `health_expenditure_per_capita_(US$)`)
-
-```
-
-
 #### combining CPI datasets
 ```{r}
 dta_10_piv <-
@@ -343,6 +325,21 @@ intensity_vector_2 <- intensity_vector_2[intensity_vector_2 > 0]
 mean(intensity_vector_2)
 ```
 
+#### creating ebola dataset
+```{r}
+health_spending <- read_csv("~/Github/violent-infections/thesis datasets/ebola data/health expenditure/health_expenditure_per_capita.csv")
+
+health_spending_long <- 
+  health_spending %>%
+  pivot_longer(cols = c(`2013`, `2014`, `2015`, `2016`, `2017`), 
+               names_to = "Year", 
+               values_to = "health_expenditure_per_capita_(US$)")
+
+health_spending_clean <-
+  health_spending_long %>%
+  filter(Countries %in% unique(attack_dta$Country), Year %in% 2013:2017) %>%
+  select(country = Countries, Year, `health_expenditure_per_capita_(US$)`)
+```
 
 ####controlling for case severity
 
@@ -368,29 +365,34 @@ attack_dta_long <-
   pivot_longer(cols = c(2:6), names_to = "year", values_to = "attacks") %>%
   arrange(Country)
 
-cor.test(x = CPI_dta_long$score, 
+cor1 <- cor.test(x = CPI_dta_long$score, 
          y = attack_dta_long$attacks, 
-         z = health_spending_clean$`health_expenditure_per_capita_(US$)`, 
+         z = as.numeric(health_spending_clean$`health_expenditure_per_capita_(US$)`), 
          method = "pearson")
 
+lm_dta <- cbind.data.frame(CPI = CPI_dta_long$score, 
+                           atks = attack_dta_long$attacks, 
+                           health = as.numeric(health_spending_clean$`health_expenditure_per_capita_(US$)`))
+
+lm1 <- lm(CPI ~ atks+health, data = lm_dta)
 
 
+pacman::p_load(jtools)
+
+effect_plot(lm1, pred = atks, interval = TRUE, plot.points = TRUE)
+
+?effect_plot
 
 ggplot(data = cbind.data.frame(CPI_dta_long$score, 
                             attack_dta_long$attacks, 
                             health_spending_clean$`health_expenditure_per_capita_(US$)`), 
-       aes(x = CPI_dta_long$score, y = attack_dta_long$attacks))
-
-+
+       aes(x = CPI_dta_long$score, y = attack_dta_long$attacks))+
   geom_jitter() +
-  geom_smooth(method = y ~ x + health_spending_clean$`health_expenditure_per_capita_(US$)`) +
   labs(title = "Figure 1: Effect of Political Distrust on Attacks of Aid Workers",  
        subtitle = "data: Aid Worker Security Database and Corruption Perception Index",
        x = "Corruption Perception Index Score",
        y = "Number of Attacks") +
   theme_bw()
-
-pacman::p_load(ppcor)
 ```
 
 
